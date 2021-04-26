@@ -27,3 +27,16 @@ PROJECT_ID=$(cat $PATH_TO_CONSTANTS_FILE | python -c 'import json,sys; constants
 
 # Deploy
 firebase deploy --project $PROJECT_ID --public public
+
+cd cloud_functions
+
+for FUNCTION_NAME in Publish Log StatusZ
+do
+gcloud --project $PROJECT_ID functions deploy \
+$FUNCTION_NAME \
+--entry-point $FUNCTION_NAME \
+--runtime python37 \
+--allow-unauthenticated \
+--region=europe-west1 \
+--trigger-http
+done

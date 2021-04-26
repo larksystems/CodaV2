@@ -3,13 +3,17 @@ version: 2.0.0
 description: Coda V2
 
 environment:
-  sdk: '>=2.0.0 <3.0.0'
+  sdk: 2.10.4
 
 dependencies:
-  firebase: ^5.0.0
+  firebase: ^7.2.0
   http: ^0.12.0
   googleapis_auth: ^0.2.0
   service_worker: ^0.2.0
+  katikati_ui_lib:
+    git:
+      url: https://github.com/larksystems/katikati_ui_lib.dart.git
+      ref: 83c787d33e1caa6216267bd115dc3d3ae58b8656
 
 
 dev_dependencies:
