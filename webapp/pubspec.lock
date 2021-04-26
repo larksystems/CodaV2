@@ -189,7 +189,7 @@ packages:
       name: firebase
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "5.0.4"
+    version: "7.3.3"
   fixnum:
     dependency: transitive
     description:
@@ -267,6 +267,15 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "3.0.1"
+  katikati_ui_lib:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: "83c787d33e1caa6216267bd115dc3d3ae58b8656"
+      resolved-ref: "83c787d33e1caa6216267bd115dc3d3ae58b8656"
+      url: "https://github.com/larksystems/katikati_ui_lib.dart.git"
+    source: git
+    version: "0.0.1"
   logging:
     dependency: transitive
     description:
@@ -519,6 +528,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.1.6"
+  uuid:
+    dependency: transitive
+    description:
+      name: uuid
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.2.2"
   vm_service:
     dependency: transitive
     description:
@@ -555,4 +571,4 @@ packages:
     source: hosted
     version: "2.2.0"
 sdks:
-  dart: ">=2.7.0 <3.0.0"
+  dart: "2.10.4"

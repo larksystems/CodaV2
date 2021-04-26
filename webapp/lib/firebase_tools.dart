@@ -1,5 +1,8 @@
 import 'package:firebase/firebase.dart' as firebase;
 import 'package:firebase/firestore.dart' as firestore;
+import 'package:katikati_ui_lib/components/platform/platform.dart';
+import 'package:katikati_ui_lib/components/platform/pubsub.dart' as pubsub;
+
 
 import 'firebase_constants.dart' as firebase_constants;
 import 'authentication.dart' as auth;
@@ -8,6 +11,7 @@ import 'logger.dart' as log;
 import 'config.dart';
 import 'sample_data/sample_json_datasets.dart';
 import 'dart:async';
+
 
 class DatasetLoadException implements Exception {
   final String _message;
@@ -24,6 +28,8 @@ enum ChangeType {
 typedef AutocodingProgressUpdatesListener(double updateFraction);
 
 firestore.Firestore _firestoreInstance = firebase.firestore();
+pubsub.PubSubClient pubSubClient;
+
 
 init() async {
   if (TEST_MODE) return;
@@ -57,6 +63,13 @@ updateMessage(Dataset dataset, Message msg) {
     log.perf("updateMessage", sw.elapsedMilliseconds);
     updateDatasetStatus(dataset);
   });
+
+  if (pubSubClient == null) {
+    pubSubClient = new pubsub.PubSubClient(firebase_constants.publishUrl, firebaseAuth.currentUser);
+  }
+  // Compute the message set again so that it's independent of the storage format directly used
+  // e.g. avoiding the serverTimeStamp that can't be JSON encoded
+  pubSubClient.publishAddOpinion("coda_label", msg.toFirebaseMap());
 }
 
 updateDatasetStatus(Dataset dataset) {
@@ -79,7 +92,7 @@ updateDatasetStatus(Dataset dataset) {
     var wsCodeIdList = s.codes.where(
       (c) => c.codeType == Code.CODETYPE_CONTROL && c.controlCode == "WS").toList();
     String wsCodeId = wsCodeIdList.length != 0 ? wsCodeIdList.first.id : null;
-    
+
     var ncCodeIdList = s.codes.where(
       (c) => c.codeType == Code.CODETYPE_CONTROL && c.controlCode == "NC").toList();
     String ncCodeId = ncCodeIdList.length != 0 ? ncCodeIdList.first.id : null;
@@ -98,7 +111,7 @@ updateDatasetStatus(Dataset dataset) {
     for (Label l in m.labels) {
       latest_labels.putIfAbsent(l.schemeId, () => l);
     }
-    
+
     // Test if the message currently has a label (that isn't MANUALLY_UNCODED), and
     // if any of the latest labels are either WS or NC
     var messageHasLabel = false;
@@ -137,7 +150,7 @@ updateDatasetStatus(Dataset dataset) {
       messagesWithNC += 1;
     }
   }
-  
+
   var stats = {
     "messages_count" : messagesCount,
     "messages_with_label" : messagesWithLabel,
@@ -231,7 +244,7 @@ void setupListenerForAutocodingUpdates(Dataset dataset, AutocodingProgressUpdate
     if (snapshotData != null) {
       fractionComplete = querySnapshot.data()["fractionComplete"];
     }
-    
+
     listener(fractionComplete);
   });
 }

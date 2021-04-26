@@ -66,6 +66,7 @@ class Message {
           }
           break;
         case 'LastUpdated':
+          if (value is! DateTime) break; // TODO: Not clear why this is arriving as a map from firestore
           lastUpdated = value;
           break;
         default:
