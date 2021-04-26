@@ -3,6 +3,8 @@ library firebase.constants;
 
 import 'dart:convert';
 import 'dart:html';
+
+// TODO: Replace this file (filebase_constants.dart) with platform_constants from kk_ui_lib
 import 'package:katikati_ui_lib/components/platform/platform_constants.dart' as platform_constants;
 
 void init() async {
