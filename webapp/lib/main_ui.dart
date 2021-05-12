@@ -15,6 +15,8 @@ import 'authentication.dart' as auth;
 import 'firebase_tools.dart' as fbt;
 import 'data_services.dart' as data_services;
 
+import 'ifrc_demo_code_hierarchy.dart';
+
 part 'view_model.dart';
 
 CodaUI _codaUI;
@@ -84,7 +86,7 @@ class CodaUI {
       CodeSelector activeCodeSelector = CodeSelector.activeCodeSelector;
       TableRowElement row = getAncestors(CodeSelector.activeCodeSelector.viewElement).firstWhere((e) => e.classes.contains('message-row'));
       String messageId = row.attributes['message-id'];
-      
+
       selectNextUncodedMessage(messageId, activeCodeSelector.scheme.id);
     });
 
@@ -177,7 +179,7 @@ class CodaUI {
       return;
     }
     String progress = (fraction * 100).toStringAsFixed(2);
-    
+
     querySelector("#autocode_progress")
       ..hidden = false
       ..text = "( $progress% )";
@@ -386,7 +388,7 @@ class CodaUI {
       CodeSelector activeCodeSelector = CodeSelector.activeCodeSelector;
       TableRowElement row = getAncestors(CodeSelector.activeCodeSelector.viewElement).firstWhere((e) => e.classes.contains('message-row'));
       String messageId = row.attributes['message-id'];
-      
+
       if (event.key == 'Tab') {
         selectNextCodeSelector(messageId, activeCodeSelector.scheme.id);
         event.preventDefault();
@@ -493,7 +495,7 @@ class CodaUI {
     }
     return false;
   }
-  
+
   void selectNextUncodedMessage(String messageID, String schemeID) {
     MessageViewModel message = messageList.messageMap[messageID];
     int codeSelectorIndex = message.codeSelectors.indexWhere((codeSelector) => codeSelector.scheme.id == schemeID);
