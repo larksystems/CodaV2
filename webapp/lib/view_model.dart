@@ -249,7 +249,6 @@ void updateCodeSchemeOptions(CodeSelector codeSelector, List<CodeSelector> codeS
   var selectedOption = codeSelector.selectedOption;
   var selectedCode = codeSelector.scheme.codes.singleWhere((element) => element.id == selectedOption, orElse: () => null);
   var index = codeSelectors.indexOf(codeSelector);
-  codeSelectors[index].hideHierarchyWarning();
   if (index == 0) {
     if (selectedOption == CodeSelector.EMPTY_CODE_VALUE) {
       codeSelectors[1].showAllOptions();
