@@ -509,17 +509,18 @@ class CodaUI {
     MessageViewModel message = messageList.messageMap[messageID];
     int codeSelectorIndex = message.codeSelectors.indexWhere((codeSelector) => codeSelector.scheme.id == schemeID);
 
-    bool visible = message.viewElement.style.display == 'none';
-    if (!visible) {
-      int messageIndex = messageList.messages.indexOf(message);
-      if (messageIndex < messageList.messages.length - 1) { // it's not the last message
-        CodeSelector.activeCodeSelector = messageList.messages[messageIndex + 1].codeSelectors[0];
-        selectNextCodeSelectorHorizontal(messageList.messages[messageIndex + 1].message.id, CodeSelector.activeCodeSelector.scheme.id);
-      }
-      return;
-    }
-
     if (codeSelectorIndex < message.codeSelectors.length - 1) { // it's not the code selector in the last column, move to the next column
+      bool visible = message.viewElement.style.display != 'none';
+      if (!visible) {
+        int messageIndex = messageList.messages.indexOf(message);
+        if (messageIndex < messageList.messages.length - 1) { // it's not the last message
+          messageIndex += 1;
+          message = messageList.messages[messageIndex];
+          CodeSelector.activeCodeSelector = message.codeSelectors[codeSelectorIndex];
+          selectNextCodeSelectorHorizontal(message.message.id, schemeID);
+        }
+        return;
+      }
       CodeSelector.activeCodeSelector = message.codeSelectors[codeSelectorIndex + 1];
       if (jumpToNextUncoded && CodeSelector.activeCodeSelector.selectedOption != CodeSelector.EMPTY_CODE_VALUE) {
         selectNextCodeSelectorHorizontal(messageID, CodeSelector.activeCodeSelector.scheme.id);
@@ -527,9 +528,20 @@ class CodaUI {
     } else { // it's the code selector in the last column, move to the next message
       int messageIndex = messageList.messages.indexOf(message);
       if (messageIndex < messageList.messages.length - 1) { // it's not the last message
-        CodeSelector.activeCodeSelector = messageList.messages[messageIndex + 1].codeSelectors[0];
+        messageIndex += 1;
+        message = messageList.messages[messageIndex];
+        CodeSelector.activeCodeSelector = message.codeSelectors[0];
+        bool visible = message.viewElement.style.display != 'none';
+        if (!visible) {
+          int messageIndex = messageList.messages.indexOf(message);
+          if (messageIndex < messageList.messages.length - 1) { // it's not the last message
+            CodeSelector.activeCodeSelector = message.codeSelectors[message.codeSelectors.length - 1];
+            selectNextCodeSelectorHorizontal(message.message.id, schemeID);
+          }
+          return;
+        }
         if (jumpToNextUncoded && CodeSelector.activeCodeSelector.selectedOption != CodeSelector.EMPTY_CODE_VALUE) {
-          selectNextCodeSelectorHorizontal(messageList.messages[messageIndex + 1].message.id, CodeSelector.activeCodeSelector.scheme.id);
+          selectNextCodeSelectorHorizontal(messageList.messages[messageIndex].message.id, CodeSelector.activeCodeSelector.scheme.id);
         }
       } // else, it's the last message, stop
     }
@@ -539,21 +551,23 @@ class CodaUI {
     MessageViewModel message = messageList.messageMap[messageID];
     int codeSelectorIndex = message.codeSelectors.indexWhere((codeSelector) => codeSelector.scheme.id == schemeID);
 
-    bool visible = message.viewElement.style.display == 'none';
-    if (!visible) {
-      int messageIndex = messageList.messages.indexOf(message);
-      if (messageIndex < messageList.messages.length - 1) { // it's not the last message
-        CodeSelector.activeCodeSelector = messageList.messages[messageIndex + 1].codeSelectors[codeSelectorIndex];
-        selectNextCodeSelectorVertical(messageList.messages[messageIndex + 1].message.id, CodeSelector.activeCodeSelector.scheme.id);
-      }
-      return;
-    }
-
     int messageIndex = messageList.messages.indexOf(message);
     if (messageIndex < messageList.messages.length - 1) { // it's not the last message
-      CodeSelector.activeCodeSelector = messageList.messages[messageIndex + 1].codeSelectors[codeSelectorIndex];
+      messageIndex += 1;
+      message = messageList.messages[messageIndex];
+      bool visible = message.viewElement.style.display != 'none';
+      if (!visible) {
+        int messageIndex = messageList.messages.indexOf(message);
+        if (messageIndex < messageList.messages.length - 1) { // it's not the last message
+          CodeSelector.activeCodeSelector = messageList.messages[messageIndex].codeSelectors[codeSelectorIndex];
+          selectNextCodeSelectorVertical(messageList.messages[messageIndex].message.id, CodeSelector.activeCodeSelector.scheme.id);
+        }
+        return;
+      }
+      CodeSelector.activeCodeSelector = message.codeSelectors[codeSelectorIndex];
+
       if (jumpToNextUncoded && CodeSelector.activeCodeSelector.selectedOption != CodeSelector.EMPTY_CODE_VALUE) {
-        selectNextCodeSelectorVertical(messageList.messages[messageIndex + 1].message.id, CodeSelector.activeCodeSelector.scheme.id);
+        selectNextCodeSelectorVertical(messageList.messages[messageIndex].message.id, CodeSelector.activeCodeSelector.scheme.id);
       }
     } // else, it's the last message, stop
   }
