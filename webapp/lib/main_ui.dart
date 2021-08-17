@@ -150,7 +150,7 @@ class CodaUI {
       return;
     }
 
-    if (datasetId != 'ifrc_demo') {
+    if (!datasetId.startsWith('ifrc_')) {
       filteringEnabledCheckbox.parent.parent.style.display = 'none';
     }
 
