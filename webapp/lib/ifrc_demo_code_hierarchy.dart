@@ -50,6 +50,7 @@ var ifrc_demo_code_hierarchy = {
 		],
 		"Observations_or_beliefs_about_schools_and_education": [
 			"Observations or beliefs about return to schools",
+      "Other observations or beliefs about schools and education",
 		],
 		"Beliefs_about_behaviors_that_protect_people_prevention": [
 			"Beliefs about hand washing or hand sanitizers",
@@ -68,9 +69,11 @@ var ifrc_demo_code_hierarchy = {
 			"Other beliefs and observations about vaccines",
 			"Observations or beliefs about testing",
 			"Observations or beliefs about other health care services",
-			"Observations or beliefs about the vaccine side effects or health risks",
+			"Observations or beliefs about vaccine safety",
+      "Comments about vaccine effectiveness",
 			"Comments in favour of the vaccine",
-			"Comments about the rejection of the vaccine",
+      "Statements indicating suspicion of the vaccine",
+      "Statements indicating non-acceptance of the vaccine",
 			"Observations or beliefs about the vaccine origin, testing or Government approval",
 		],
 		"Observations_or_beliefs_about_people_or_organizations_responding_to_the_disease": [
@@ -82,6 +85,7 @@ var ifrc_demo_code_hierarchy = {
 		],
 		"Observations_or_beliefs_about_people_recovered_from_the_disease": [
 			"Observation or belief about people recovered from the disease",
+      "Other observations or beliefs about people who have had the disease",
 		],
 		"Fear_or_stigma": [
 			"Fear or suspicion of specific people groups or populations in ways that could be stigmatizing",
@@ -122,9 +126,10 @@ var ifrc_demo_code_hierarchy = {
 			"Questions about health care services for the disease",
 			"Questions about whether there is a vaccine for the disease",
 			"Questions about testing ",
-			"Questions about the vaccine side effects or health risks",
+      "Questions about vaccine safety",
 			"Questions about the vaccine origin, testing or Government approval",
-			"Questions about how to access the vaccines",
+			"Questions about vaccine access and priority groups",
+      " Questions about vaccine effectiveness",
 			"Other vaccine questions",
 		],
 		"Questions_about_people_or_organizations_responding_to_the_disease": [

@@ -118,7 +118,8 @@ nav .button {
 
 /*** Checkboxes ***/
 label[for="continuous-sorting"],
-label[for="jump-to-next-uncoded"] {
+label[for="jump-to-next-uncoded"],
+label[for="filtering-enabled"] {
   line-height: 30px;
   margin: 10px;
   margin-right: 2px;
@@ -126,7 +127,8 @@ label[for="jump-to-next-uncoded"] {
 }
 
 input#continuous-sorting,
-input#jump-to-next-uncoded {
+input#jump-to-next-uncoded,
+input#filtering-enabled {
   vertical-align: middle;
 }
 
@@ -197,6 +199,15 @@ main tbody {
 
 #message-coding-table tbody tr:first-child td {
   padding-top: 18px;
+}
+
+#message-coding-table thead .filter-row td {
+  /* Sticky header */
+  position: sticky;
+  top: 130px; /* first row top + first row height */
+
+  /* Appearance */
+  padding-top: 0;
 }
 
 .message-seq {

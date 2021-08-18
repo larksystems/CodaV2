@@ -41,6 +41,9 @@ class CodaUI {
   static InputElement jumpToNextUncodedCheckbox = querySelector('#jump-to-next-uncoded');
   static bool get jumpToNextUncoded => jumpToNextUncodedCheckbox.checked;
 
+  static InputElement filteringEnabledCheckbox = querySelector('#filtering-enabled');
+  static bool get filteringEnabled => filteringEnabledCheckbox.checked;
+
   static ButtonElement nextUncodedMessageButton = querySelector('#next-uncoded-message');
 
   static ButtonElement autoCodeButton = querySelector('#autocode');
@@ -79,6 +82,14 @@ class CodaUI {
     continuousSortingCheckbox.onChange.listen((event) {
       if (continuousSorting) {
         sortTableView();
+      }
+    });
+
+    filteringEnabledCheckbox.onChange.listen((event) {
+      if (filteringEnabled) {
+        showFilters();
+      } else {
+        hideFilters();
       }
     });
 
@@ -137,6 +148,10 @@ class CodaUI {
       displayDatasetSelectorView();
       loader.hideLoader();
       return;
+    }
+
+    if (!datasetId.startsWith('ifrc_')) {
+      filteringEnabledCheckbox.parent.parent.style.display = 'none';
     }
 
     try {
@@ -229,6 +244,22 @@ class CodaUI {
             ..classes.add('scheme-id')
             ..text = codeScheme.id));
     });
+
+    TableRowElement filterRow = header.addRow()
+      ..classes.add('filter-row')
+      ..style.display = 'none';
+    filterRow.addCell()
+      ..classes.add('message-seq');
+    filterRow.addCell()
+      ..classes.add('message-text');
+    dataset.codeSchemes.forEach((codeScheme) {
+      CodeSelector codeSelector = new CodeSelector(codeScheme);
+      codeSelector.checkbox.style.visibility = 'hidden';
+      this.messageList.filteringCodeSelectors.add(codeSelector);
+      filterRow.addCell()
+        ..classes.add('message-code')
+        ..append(codeSelector.viewElement);
+    });
     return header;
   }
 
@@ -272,6 +303,7 @@ class CodaUI {
     Stopwatch sw = new Stopwatch()..start();
 
     messageList.sort(dataset);
+    messageList.filter();
     log.perf("messageList Sort", sw.elapsedMilliseconds);
 
     TableSectionElement body = messageCodingTable.tBodies.first;
@@ -292,6 +324,33 @@ class CodaUI {
     messageCodingTable.onChange.listen((event) {
       var target = event.target;
       if (target is! InputElement && target is! SelectElement) return;
+
+      TableRowElement filterRow = getAncestors(target).firstWhere((e) => e.classes.contains('filter-row'), orElse: () => null);
+      if (filterRow != null) {
+        DivElement inputGroup = getAncestors(target).firstWhere((e) => e.classes.contains('input-group'));
+        CodeSelector codeSelector = this.messageList.filteringCodeSelectors.singleWhere((e) => e.scheme.id == inputGroup.attributes['scheme-id']);
+        updateCodeSchemeOptions(codeSelector, this.messageList.filteringCodeSelectors);
+        messageList.filter();
+
+        bool recomputeActiveCodeSelector = false;
+        if (CodeSelector.activeCodeSelector != null) {
+          Element messageElement = getAncestors(CodeSelector.activeCodeSelector.viewElement).firstWhere((a) => a.classes.contains('message-row'));
+          recomputeActiveCodeSelector = messageElement.style.display == 'none';
+        } else {
+          recomputeActiveCodeSelector = true;
+        }
+
+        if (recomputeActiveCodeSelector) {
+          var visibleMessages = messageList.messages.where((element) => element.viewElement.style.display != 'none');
+          if (visibleMessages.isEmpty) {
+            CodeSelector.activeCodeSelector = null;
+            return;
+          }
+          CodeSelector.activeCodeSelector = visibleMessages.first.codeSelectors[0];
+          CodeSelector.activeCodeSelector.focus();
+        }
+        return;
+      }
 
       TableRowElement row = getAncestors(target).firstWhere((e) => e.classes.contains('message-row'));
       DivElement inputGroup = getAncestors(target).firstWhere((e) => e.classes.contains('input-group'));
@@ -451,6 +510,17 @@ class CodaUI {
     int codeSelectorIndex = message.codeSelectors.indexWhere((codeSelector) => codeSelector.scheme.id == schemeID);
 
     if (codeSelectorIndex < message.codeSelectors.length - 1) { // it's not the code selector in the last column, move to the next column
+      bool visible = message.viewElement.style.display != 'none';
+      if (!visible) {
+        int messageIndex = messageList.messages.indexOf(message);
+        if (messageIndex < messageList.messages.length - 1) { // it's not the last message
+          messageIndex += 1;
+          message = messageList.messages[messageIndex];
+          CodeSelector.activeCodeSelector = message.codeSelectors[codeSelectorIndex];
+          selectNextCodeSelectorHorizontal(message.message.id, schemeID);
+        }
+        return;
+      }
       CodeSelector.activeCodeSelector = message.codeSelectors[codeSelectorIndex + 1];
       if (jumpToNextUncoded && CodeSelector.activeCodeSelector.selectedOption != CodeSelector.EMPTY_CODE_VALUE) {
         selectNextCodeSelectorHorizontal(messageID, CodeSelector.activeCodeSelector.scheme.id);
@@ -458,9 +528,20 @@ class CodaUI {
     } else { // it's the code selector in the last column, move to the next message
       int messageIndex = messageList.messages.indexOf(message);
       if (messageIndex < messageList.messages.length - 1) { // it's not the last message
-        CodeSelector.activeCodeSelector = messageList.messages[messageIndex + 1].codeSelectors[0];
+        messageIndex += 1;
+        message = messageList.messages[messageIndex];
+        CodeSelector.activeCodeSelector = message.codeSelectors[0];
+        bool visible = message.viewElement.style.display != 'none';
+        if (!visible) {
+          int messageIndex = messageList.messages.indexOf(message);
+          if (messageIndex < messageList.messages.length - 1) { // it's not the last message
+            CodeSelector.activeCodeSelector = message.codeSelectors[message.codeSelectors.length - 1];
+            selectNextCodeSelectorHorizontal(message.message.id, schemeID);
+          }
+          return;
+        }
         if (jumpToNextUncoded && CodeSelector.activeCodeSelector.selectedOption != CodeSelector.EMPTY_CODE_VALUE) {
-          selectNextCodeSelectorHorizontal(messageList.messages[messageIndex + 1].message.id, CodeSelector.activeCodeSelector.scheme.id);
+          selectNextCodeSelectorHorizontal(messageList.messages[messageIndex].message.id, CodeSelector.activeCodeSelector.scheme.id);
         }
       } // else, it's the last message, stop
     }
@@ -469,11 +550,24 @@ class CodaUI {
   selectNextCodeSelectorVertical(String messageID, String schemeID) {
     MessageViewModel message = messageList.messageMap[messageID];
     int codeSelectorIndex = message.codeSelectors.indexWhere((codeSelector) => codeSelector.scheme.id == schemeID);
+
     int messageIndex = messageList.messages.indexOf(message);
     if (messageIndex < messageList.messages.length - 1) { // it's not the last message
-      CodeSelector.activeCodeSelector = messageList.messages[messageIndex + 1].codeSelectors[codeSelectorIndex];
+      messageIndex += 1;
+      message = messageList.messages[messageIndex];
+      bool visible = message.viewElement.style.display != 'none';
+      if (!visible) {
+        int messageIndex = messageList.messages.indexOf(message);
+        if (messageIndex < messageList.messages.length - 1) { // it's not the last message
+          CodeSelector.activeCodeSelector = messageList.messages[messageIndex].codeSelectors[codeSelectorIndex];
+          selectNextCodeSelectorVertical(messageList.messages[messageIndex].message.id, CodeSelector.activeCodeSelector.scheme.id);
+        }
+        return;
+      }
+      CodeSelector.activeCodeSelector = message.codeSelectors[codeSelectorIndex];
+
       if (jumpToNextUncoded && CodeSelector.activeCodeSelector.selectedOption != CodeSelector.EMPTY_CODE_VALUE) {
-        selectNextCodeSelectorVertical(messageList.messages[messageIndex + 1].message.id, CodeSelector.activeCodeSelector.scheme.id);
+        selectNextCodeSelectorVertical(messageList.messages[messageIndex].message.id, CodeSelector.activeCodeSelector.scheme.id);
       }
     } // else, it's the last message, stop
   }
@@ -494,6 +588,18 @@ class CodaUI {
       }
     }
     return false;
+  }
+
+  void showFilters() {
+    messageList.filteringEnabled = true;
+    messageCodingTable.querySelector('.filter-row').style.removeProperty('display');
+    messageList.filter();
+  }
+
+  void hideFilters() {
+    messageList.filteringEnabled = false;
+    messageCodingTable.querySelector('.filter-row').style.display = 'none';
+    messageList.filter();
   }
 
   void selectNextUncodedMessage(String messageID, String schemeID) {

@@ -12,11 +12,13 @@ typedef void SelectorChanged(String valueID);
 class MessageListViewModel {
   List<MessageViewModel> messages = [];
   Map<String, MessageViewModel> messageMap = {};
+  List<CodeSelector> filteringCodeSelectors = [];
 
   MessageListViewModel();
 
   String sortBySeqOrSchemeId = "seq";
   bool sortAscending = true;
+  bool filteringEnabled = false;
 
   int add(Dataset dataset, MessageViewModel messageViewModel) {
     messages.add(messageViewModel);
@@ -73,9 +75,35 @@ class MessageListViewModel {
                               : codeCompare[b].compareTo(codeCompare[a]));
   }
 
+  void filter() {
+    if (messages.length == 0) return;
+    if (!filteringEnabled) {
+      for (var message in messages) {
+        message.viewElement.style.removeProperty('display');
+      }
+      return;
+    }
+
+    for (var message in messages) {
+      bool pass = true;
+      for (int i = 0; i < message.codeSelectors.length; i++) {
+        if (filteringCodeSelectors[i].selectedOption == CodeSelector.EMPTY_CODE_VALUE) continue;
+        if (message.codeSelectors[i].selectedOption == filteringCodeSelectors[i].selectedOption) continue;
+        pass = false;
+        break;
+      }
+      if (pass) {
+        message.viewElement.style.removeProperty('display');
+      } else {
+        message.viewElement.style.display = 'none';
+      }
+    }
+  }
+
   labelMessage(Dataset dataset, String messageId, String schemeId, String selectedOption) {
     messageMap[messageId].schemeCodeChanged(dataset, schemeId, selectedOption);
     sort(dataset);
+    filter();
   }
 }
 
@@ -106,7 +134,7 @@ class MessageViewModel {
     });
 
     // Update the next code scheme in the list to show only a subset of the tags
-    codeSelectors.forEach((codeSelector) => updateCodeSchemeOptions(codeSelector));
+    codeSelectors.forEach((codeSelector) => _updateCodeSchemeOptions(codeSelector));
   }
 
   schemeCheckChanged(Dataset dataset, String schemeId, bool checked) {
@@ -159,7 +187,7 @@ class MessageViewModel {
     displayLatestLabelForCodeSelector(getCodeSelectorForSchemeId(schemeId));
 
     // Update the next code scheme in the list to show only a subset of the tags
-    updateCodeSchemeOptions(getCodeSelectorForSchemeId(schemeId));
+    _updateCodeSchemeOptions(getCodeSelectorForSchemeId(schemeId));
   }
 
   void update(Message newMessage) {
@@ -174,7 +202,7 @@ class MessageViewModel {
     codeSelectors.forEach((codeSelector) => displayLatestLabelForCodeSelector(codeSelector));
 
     // Update the next code scheme in the list to show only a subset of the tags
-    codeSelectors.forEach((codeSelector) => updateCodeSchemeOptions(codeSelector));
+    codeSelectors.forEach((codeSelector) => _updateCodeSchemeOptions(codeSelector));
   }
 
   CodeSelector getCodeSelectorForSchemeId(String schemeId) =>
@@ -209,40 +237,56 @@ class MessageViewModel {
   }
 
 
-  final _ifrcSchemes = ["Scheme-0feedback", "Scheme-1category", "Scheme-2code"];
-  void updateCodeSchemeOptions(CodeSelector codeSelector) {
-    // Do nothing if it's not the IFRC project
-    if (!_ifrcSchemes.contains(codeSelector.scheme.id)) {
+  void _updateCodeSchemeOptions(CodeSelector codeSelector) => updateCodeSchemeOptions(codeSelector, codeSelectors);
+}
+
+final _ifrcSchemes = ["Scheme-0feedback", "Scheme-1category", "Scheme-2code"];
+void updateCodeSchemeOptions(CodeSelector codeSelector, List<CodeSelector> codeSelectors) {
+  // Do nothing if it's not the IFRC project
+  if (!_ifrcSchemes.contains(codeSelector.scheme.id)) {
+    return;
+  }
+  var selectedOption = codeSelector.selectedOption;
+  var selectedCode = codeSelector.scheme.codes.singleWhere((element) => element.id == selectedOption, orElse: () => null);
+  var index = codeSelectors.indexOf(codeSelector);
+  if (index == 0) {
+    if (selectedOption == CodeSelector.EMPTY_CODE_VALUE) {
+      codeSelectors[1].showAllOptions();
+      codeSelectors[2].showAllOptions();
       return;
     }
-    var selectedOption = codeSelector.selectedOption;
-    var selectedCode = codeSelector.scheme.codes.singleWhere((element) => element.id == selectedOption);
-    var index = codeSelectors.indexOf(codeSelector);
-    if (index == 0) {
-      if (selectedOption == CodeSelector.EMPTY_CODE_VALUE) {
-        codeSelectors[1].showAllOptions();
+    List<String> categories = ifrc_demo_code_hierarchy[selectedCode.displayText].keys.toList();
+    List<String> codes = [];
+    for (var category in categories) {
+      codes.addAll(ifrc_demo_code_hierarchy[selectedCode.displayText][category]);
+    }
+    codeSelectors[1].showOnlySubsetOptions(categories);
+    codeSelectors[2].showOnlySubsetOptions(codes);
+    return;
+  }
+  if (index == 1) {
+    var typeCodeSelector = codeSelectors[0];
+    var selectedTypeOption = typeCodeSelector.selectedOption;
+    var selectedTypeCode = typeCodeSelector.scheme.codes.singleWhere((element) => element.id == selectedTypeOption, orElse: () => null);
+
+    if (selectedOption == CodeSelector.EMPTY_CODE_VALUE) {
+      if (selectedTypeCode == null) {
         codeSelectors[2].showAllOptions();
         return;
       }
-      List<String> categories = ifrc_demo_code_hierarchy[selectedCode.displayText].keys.toList();
+      List<String> categories = ifrc_demo_code_hierarchy[selectedTypeCode.displayText].keys.toList();
       List<String> codes = [];
       for (var category in categories) {
-        codes.addAll(ifrc_demo_code_hierarchy[selectedCode.displayText][category]);
+        codes.addAll(ifrc_demo_code_hierarchy[selectedTypeCode.displayText][category]);
       }
-      codeSelectors[1].showOnlySubsetOptions(categories);
       codeSelectors[2].showOnlySubsetOptions(codes);
       return;
     }
-    if (index == 1) {
-      if (selectedOption == CodeSelector.EMPTY_CODE_VALUE) {
-        codeSelectors[2].showAllOptions();
+
+    for (var type in ifrc_demo_code_hierarchy.keys) {
+      if (ifrc_demo_code_hierarchy[type].keys.contains(selectedCode.displayText)) {
+        codeSelectors[2].showOnlySubsetOptions(ifrc_demo_code_hierarchy[type][selectedCode.displayText]);
         return;
-      }
-      for (var type in ifrc_demo_code_hierarchy.keys) {
-        if (ifrc_demo_code_hierarchy[type].keys.contains(selectedCode.displayText)) {
-          codeSelectors[2].showOnlySubsetOptions(ifrc_demo_code_hierarchy[type][selectedCode.displayText]);
-          return;
-        }
       }
     }
   }
@@ -268,6 +312,8 @@ class CodeSelector {
     // _activeCodeSelector?.viewElement?.parent?.parent?.classes?
     // Focus on the new code selector
     _activeCodeSelector = activeCodeSelector;
+    if (_activeCodeSelector == null) return;
+
     _activeCodeSelector.viewElement.classes.toggle('active', true);
     if (_activeCodeSelector?.viewElement != null) {
       Element messageElement = getAncestors(_activeCodeSelector.viewElement).firstWhere((a) => a.classes.contains('message-row'));
@@ -388,14 +434,28 @@ class CodeSelector {
       option.hidden = !subsetValues.contains(option.attributes['value']);
     }
     var selectedValue = dropdown.selectedOptions[0].attributes['value'];
-    if (!subsetValues.contains(selectedValue)) {
-      Element messageElement = getAncestors(viewElement).firstWhere((a) => a.classes.contains('message-row'));
-      var seqNo = messageElement.firstChild.text;
-      print('Warning: ${selectedValue} not in the subset values (message id ${seqNo})');
-      dropdown.classes.toggle('code-selector--warning', true);
-    } else {
-      dropdown.classes.toggle('code-selector--warning', false);
+    var subsetValuesWithUnassign = new List.from(subsetValues)..add(EMPTY_CODE_VALUE);
+    if (subsetValuesWithUnassign.contains(selectedValue)) {
+      hideHierarchyWarning();
+      return;
     }
+    Element messageElement = getAncestors(viewElement).firstWhere((a) => a.classes.contains('message-row'), orElse: () => null);
+    if (messageElement == null) {
+      print('Warning: ${selectedValue} not in the subset values for selector ${scheme.name}');
+      showHierarchyWarning();
+      return;
+    }
+    var seqNo = messageElement.firstChild.text;
+    print('Warning: ${selectedValue} not in the subset values (message id ${seqNo})');
+    showHierarchyWarning();
+  }
+
+  void showHierarchyWarning() {
+    dropdown.classes.toggle('code-selector--warning', true);
+  }
+
+  void hideHierarchyWarning() {
+    dropdown.classes.toggle('code-selector--warning', false);
   }
 
   void showAllOptions() {
