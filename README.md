@@ -1,4 +1,4 @@
-# CodaV2
+# CodaV2 archive (read-only)
 
 [![CircleCI](https://circleci.com/gh/AfricasVoices/CodaV2/tree/master.svg?style=svg)](https://circleci.com/gh/AfricasVoices/CodaV2/tree/master)
 
