@@ -46,7 +46,7 @@ class MessageListViewModel {
       if (checked == null) {
         checkedAsString = "2";
       } else {
-        checkedAsString = checked ? "0" : "1"; 
+        checkedAsString = checked ? "0" : "1";
       }
 
       String codeId = message.getLatestLabelForSchemeId(sortBySeqOrSchemeId)?.codeId;
@@ -104,6 +104,9 @@ class MessageViewModel {
         ..classes.add('message-code')
         ..append(codeSelector.viewElement);
     });
+
+    // Update the next code scheme in the list to show only a subset of the tags
+    codeSelectors.forEach((codeSelector) => updateCodeSchemeOptions(codeSelector));
   }
 
   schemeCheckChanged(Dataset dataset, String schemeId, bool checked) {
@@ -154,6 +157,9 @@ class MessageViewModel {
 
     // Update the checkbox and origin
     displayLatestLabelForCodeSelector(getCodeSelectorForSchemeId(schemeId));
+
+    // Update the next code scheme in the list to show only a subset of the tags
+    updateCodeSchemeOptions(getCodeSelectorForSchemeId(schemeId));
   }
 
   void update(Message newMessage) {
@@ -166,6 +172,9 @@ class MessageViewModel {
     }
     this.message = newMessage;
     codeSelectors.forEach((codeSelector) => displayLatestLabelForCodeSelector(codeSelector));
+
+    // Update the next code scheme in the list to show only a subset of the tags
+    codeSelectors.forEach((codeSelector) => updateCodeSchemeOptions(codeSelector));
   }
 
   CodeSelector getCodeSelectorForSchemeId(String schemeId) =>
@@ -197,6 +206,45 @@ class MessageViewModel {
     codeSelector.selectedOption = CodeSelector.EMPTY_CODE_VALUE;
     codeSelector.checked = false;
     codeSelector.origin = '';
+  }
+
+
+  final _ifrcSchemes = ["Scheme-0feedback", "Scheme-1category", "Scheme-2code"];
+  void updateCodeSchemeOptions(CodeSelector codeSelector) {
+    // Do nothing if it's not the IFRC project
+    if (!_ifrcSchemes.contains(codeSelector.scheme.id)) {
+      return;
+    }
+    var selectedOption = codeSelector.selectedOption;
+    var selectedCode = codeSelector.scheme.codes.singleWhere((element) => element.id == selectedOption);
+    var index = codeSelectors.indexOf(codeSelector);
+    if (index == 0) {
+      if (selectedOption == CodeSelector.EMPTY_CODE_VALUE) {
+        codeSelectors[1].showAllOptions();
+        codeSelectors[2].showAllOptions();
+        return;
+      }
+      List<String> categories = ifrc_demo_code_hierarchy[selectedCode.displayText].keys.toList();
+      List<String> codes = [];
+      for (var category in categories) {
+        codes.addAll(ifrc_demo_code_hierarchy[selectedCode.displayText][category]);
+      }
+      codeSelectors[1].showOnlySubsetOptions(categories);
+      codeSelectors[2].showOnlySubsetOptions(codes);
+      return;
+    }
+    if (index == 1) {
+      if (selectedOption == CodeSelector.EMPTY_CODE_VALUE) {
+        codeSelectors[2].showAllOptions();
+        return;
+      }
+      for (var type in ifrc_demo_code_hierarchy.keys) {
+        if (ifrc_demo_code_hierarchy[type].keys.contains(selectedCode.displayText)) {
+          codeSelectors[2].showOnlySubsetOptions(ifrc_demo_code_hierarchy[type][selectedCode.displayText]);
+          return;
+        }
+      }
+    }
   }
 }
 
@@ -251,6 +299,7 @@ class CodeSelector {
     option
       ..attributes['schemeid'] = scheme.id
       ..attributes['valueid'] = EMPTY_CODE_VALUE
+      ..attributes['value'] = EMPTY_CODE_VALUE
       ..selected = true;
     dropdown.append(option);
     scheme.codes.forEach((code) {
@@ -260,6 +309,7 @@ class CodeSelector {
       option
         ..attributes['schemeid'] = scheme.id
         ..attributes['valueid'] = code.id
+        ..attributes['value'] = code.displayText
         ..text = "${code.displayText} $shortcutDisplayText";
       dropdown.append(option);
     });
@@ -282,6 +332,7 @@ class CodeSelector {
 
   /// When an option from the list has been selected manually, the warning message should be hidden if it's not already.
   hideWarning() => warning.classes.toggle('hidden', true);
+  showWarning() => warning.classes.toggle('hidden', false);
 
   set checked(bool checked) => checkbox.checked = checked;
   bool get checked => checkbox.checked;
@@ -326,5 +377,31 @@ class CodeSelector {
 
   focus() {
     dropdown.focus();
+  }
+
+  void showOnlySubsetOptions(Iterable<String> subsetValues) {
+    for (var option in this.dropdown.options) {
+      if (option.value == EMPTY_CODE_VALUE) {
+        option.hidden = false;
+        continue;
+      }
+      option.hidden = !subsetValues.contains(option.attributes['value']);
+    }
+    var selectedValue = dropdown.selectedOptions[0].attributes['value'];
+    if (!subsetValues.contains(selectedValue)) {
+      Element messageElement = getAncestors(viewElement).firstWhere((a) => a.classes.contains('message-row'));
+      var seqNo = messageElement.firstChild.text;
+      print('Warning: ${selectedValue} not in the subset values (message id ${seqNo})');
+      dropdown.classes.toggle('code-selector--warning', true);
+    } else {
+      dropdown.classes.toggle('code-selector--warning', false);
+    }
+  }
+
+  void showAllOptions() {
+    for (var option in dropdown.options) {
+      option.hidden = false;
+      dropdown.classes.toggle('code-selector--warning', false);
+    }
   }
 }

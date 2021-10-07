@@ -269,6 +269,11 @@ td.message-seq .button.sort { /* First sorting button is a bit different */
   width: 160px;
 }
 
+.input-group .code-selector.code-selector--warning {
+  border-color: #fa8072;
+  background-color: #fa807266;
+}
+
 .input-group {
   display: flex;
   flex-wrap: wrap;
